@@ -236,21 +236,6 @@ def draw_court(ax):
     )
 # Player list
 
-players_list = [
-    "Stephen Curry",
-    "Kyrie Irving",
-    "Kevin Durant",
-    "LeBron James",
-    "Jayson Tatum",
-    "Luka Doncic",
-    "Nikola Jokic",
-    "Giannis Antetokounmpo",
-    "Devin Booker",
-    "Anthony Edwards",
-    "Donovan Mitchell",
-    "Damian Lillard",
-    "Shai Gilgeous-Alexander"
-]
 
 # Season type list
 
@@ -646,12 +631,32 @@ st.subheader(
     "Shot Zone Analysis"
 )
 
+# Recalculate the restricted area from the shot coordinates instead of
+# relying on the NBA API's preassigned zone. LOC_X and LOC_Y use 10 court
+# units per foot, so a four-foot radius is 40 coordinate units.
+shots["DISTANCE_FROM_HOOP"] = (
+    shots["LOC_X"].pow(2).add(shots["LOC_Y"].pow(2)).pow(0.5) / 10
+)
+
+shots["CALCULATED_ZONE"] = shots["SHOT_ZONE_BASIC"]
+
+
+shots.loc[
+    shots["CALCULATED_ZONE"].eq("Restricted Area"),
+    "CALCULATED_ZONE"
+] = "In The Paint (Non-RA)"
+
+shots.loc[
+    shots["DISTANCE_FROM_HOOP"].le(4),
+    "CALCULATED_ZONE"
+] = "Restricted Area"
+
 zone_stats = (
 
     shots
 
     .groupby(
-        "SHOT_ZONE_BASIC"
+        "CALCULATED_ZONE"
     )
 
     .agg(
@@ -713,7 +718,7 @@ zone_order = [
 ]
 
 zone_stats["zone_order"] = pd.Categorical(
-    zone_stats["SHOT_ZONE_BASIC"],
+    zone_stats["CALCULATED_ZONE"],
     categories=zone_order,
     ordered=True
 )
@@ -725,7 +730,7 @@ zone_stats = zone_stats.sort_values(
 
 zone_stats = zone_stats[
     [
-        "SHOT_ZONE_BASIC",
+        "CALCULATED_ZONE",
         "makes",
         "attempts",
         "FG_PERCENTAGE"
@@ -734,7 +739,7 @@ zone_stats = zone_stats[
 
 zone_stats.rename(
     columns={
-        "SHOT_ZONE_BASIC": "Zone",
+        "CALCULATED_ZONE": "Zone",
         "FG_PERCENTAGE": "FG%",
         "makes": "Makes",
         "attempts": "Attempts"

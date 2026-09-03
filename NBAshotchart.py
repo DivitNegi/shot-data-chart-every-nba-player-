@@ -64,6 +64,20 @@ def stop_app():
 
     raise SystemExit(1)
 
+# Render a table, falling back to a plain HTML table if pyarrow
+# (which st.dataframe needs) can't be imported — e.g. when Windows
+# Smart App Control / an Application Control policy blocks its DLL.
+
+def show_table(df, **kwargs):
+
+    try:
+        st.dataframe(df, **kwargs)
+    except ImportError:
+        st.markdown(
+            df.to_html(index=False),
+            unsafe_allow_html=True
+        )
+
 # Clear cache button
 
 if st.button("Clear cache"):
@@ -619,7 +633,7 @@ distance_stats = distance_stats[["SHOT_DISTANCE",
 
 distance_stats.rename(columns={"SHOT_DISTANCE": "Distance", "FG_PERCENTAGE": "FG%", "makes": "Makes", "attempts": "Attempts"}, inplace=True)
 
-st.dataframe(
+show_table(
     distance_stats,
     width="stretch",
     hide_index=True
@@ -749,7 +763,7 @@ zone_stats.rename(
 
 # Display zone table
 
-st.dataframe(
+show_table(
     zone_stats,
     width="stretch",
     hide_index=True
@@ -787,7 +801,7 @@ columns_to_show = [
 
 ]
 
-st.dataframe(
+show_table(
     shots[columns_to_show],
     width="stretch",
     hide_index=True
